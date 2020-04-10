@@ -38,7 +38,7 @@ async function start (opts = {}) {
   opts.memoryOnly = opts['memory-only']
   opts.noAnnounce = opts['no-announce']
   opts.noTelemetry = opts['no-telemetry']
-  opts.logLevel = opts['log-level']
+  opts.logLevel = opts['log-level'] ? opts['log-level'] : opts.logLevel
 
   /**
    * HACK
