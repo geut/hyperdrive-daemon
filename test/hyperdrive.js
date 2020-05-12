@@ -882,7 +882,7 @@ test('can get all network configurations', async t => {
   t.end()
 })
 
-test.only('import', async t => {
+test('import', async t => {
   const { client, cleanup } = await createOne()
 
   // create a tmp dir
