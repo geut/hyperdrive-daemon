@@ -1,3 +1,7 @@
+const { promises: { mkdtemp, writeFile, readdir } } = require('fs')
+const { tmpdir } = require('os')
+const { once } = require('events')
+const { join } = require('path')
 const test = require('tape')
 
 const collectStream = require('stream-collector')
@@ -751,6 +755,67 @@ test('can get all network configurations', async t => {
 
   await cleanup()
   t.end()
+})
+
+test.only('import', async t => {
+  const { client, cleanup } = await createOne()
+
+  // create a tmp dir
+  const tmpDir = await mkdtemp(join(tmpdir(), 'import-test'))
+  await writeFile(join(tmpDir, 'test.txt'), 'hello world')
+
+  try {
+    // now import the dir
+    const drive = await client.drive.get()
+    const importProgress = client.drive.import(tmpDir, drive)
+
+    const [, dst] = await once(importProgress, 'put-end')
+    t.same(dst.name, '/test.txt')
+    const contents = await drive.readFile('test.txt', { encoding: 'utf8' })
+    t.same(contents, 'hello world')
+
+    await drive.close()
+
+    importProgress.destroy()
+  } catch (err) {
+    t.fail(err)
+  }
+
+  await cleanup()
+  t.end()
+})
+
+test('export', async t => {
+  const { client, cleanup } = await createOne()
+
+  // create a tmp dir
+  const tmpDir = await mkdtemp(join(tmpdir(), 'export-test'))
+
+  try {
+    // create a test drive
+    const drive = await client.drive.get()
+    await drive.writeFile('export.txt', 'hello world')
+
+    const dw = client.drive.export(drive, tmpDir)
+    await dw.start()
+
+    let total, downloaded
+    dw.on('stats', async stats => {
+      total = stats.total
+      downloaded = stats.downloaded
+      console.log({ total, downloaded })
+      if (total === downloaded) {
+        t.pass('stats OK')
+        const contents = await readdir(join(tmpDir, 'export.txt'), { encoding: 'utf8' })
+        t.same(contents, 'hello world')
+        await drive.close()
+        await cleanup()
+        t.end()
+      }
+    })
+  } catch (err) {
+    t.fail(err)
+  }
 })
 
 // TODO: Figure out why the grpc server is not terminating.
