@@ -1,4 +1,4 @@
-const { promises: { mkdtemp, writeFile, readdir } } = require('fs')
+const { promises: { mkdtemp, writeFile, readFile } } = require('fs')
 const { tmpdir } = require('os')
 const { once } = require('events')
 const { join } = require('path')
@@ -989,10 +989,9 @@ test('export', async t => {
     dw.on('stats', async stats => {
       total = stats.total
       downloaded = stats.downloaded
-      console.log({ total, downloaded })
       if (total === downloaded) {
         t.pass('stats OK')
-        const contents = await readdir(join(tmpDir, 'export.txt'), { encoding: 'utf8' })
+        const contents = await readFile(join(tmpDir, 'export.txt'), { encoding: 'utf8' })
         t.same(contents, 'hello world')
         await drive.close()
         await cleanup()
